@@ -42,3 +42,5 @@ next-env.d.ts
 
 #  Extras
 nextjs-16-llms.md
+shadcn-llms.md
+zod-v4-llms.md

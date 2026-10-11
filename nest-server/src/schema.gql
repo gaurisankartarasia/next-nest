@@ -1,0 +1,98 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuthResponse {
+  accessToken: String!
+  refreshToken: String
+  user: User!
+}
+
+input CreateUserInput {
+  email: String!
+  name: String
+  password: String!
+  role: String = "USER"
+  status: String = "ACTIVE"
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  login(input: LoginInput!): AuthResponse!
+  logout: Boolean!
+  refreshToken(input: RefreshTokenInput): AuthResponse!
+  register(input: RegisterInput!): AuthResponse!
+  updateUser(input: UpdateUserInput!): User!
+  updateUserStatus(input: UpdateUserStatusInput!): User!
+}
+
+type PaginatedUsersResponse {
+  items: [User!]!
+  page: Int!
+  pageCount: Int!
+  pageSize: Int!
+  totalCount: Int!
+}
+
+type Query {
+  me: User!
+  paginatedUsers(input: UsersQueryInput): PaginatedUsersResponse!
+  user(id: ID!): User
+  users: [User!]!
+}
+
+input RefreshTokenInput {
+  refreshToken: String
+}
+
+input RegisterInput {
+  email: String!
+  name: String
+  password: String!
+  role: String
+}
+
+"""Sort direction order"""
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input UpdateUserInput {
+  email: String
+  id: ID!
+  name: String
+  password: String
+  role: String
+  status: String
+}
+
+input UpdateUserStatusInput {
+  id: ID!
+  status: String!
+}
+
+type User {
+  createdAt: String
+  email: String!
+  id: ID!
+  name: String
+  role: String!
+  status: String!
+  updatedAt: String
+}
+
+input UsersQueryInput {
+  page: Int = 1
+  pageSize: Int = 10
+  role: String
+  search: String
+  sortBy: String = "createdAt"
+  sortOrder: SortOrder = DESC
+  status: String
+}
