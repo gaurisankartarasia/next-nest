@@ -196,6 +196,34 @@ export function UsersTable({
         size: 70,
       }),
 
+      // Public ID (PID) Column
+      columnHelper.accessor("pid", {
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="PID" />
+        ),
+        cell: ({ getValue, row }) => {
+          const pid = getValue();
+          if (!pid) return <span className="text-muted-foreground text-xs">—</span>;
+          const isCopied = copiedId === `pid-${row.original.id}`;
+          return (
+            <button
+              type="button"
+              onClick={() => handleCopy(pid, `pid-${row.original.id}`)}
+              title="Click to copy full PID"
+              className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer group"
+            >
+              <span>{pid.slice(0, 8)}…{pid.slice(-4)}</span>
+              {isCopied ? (
+                <Check className="size-3 text-emerald-600 shrink-0" />
+              ) : (
+                <Copy className="size-3 text-muted-foreground/70 group-hover:text-foreground shrink-0" />
+              )}
+            </button>
+          );
+        },
+        size: 140,
+      }),
+
       // Name & Email Column
       columnHelper.accessor("name", {
         header: ({ column }) => (
@@ -394,12 +422,26 @@ export function UsersTable({
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
-                    render={<Link href={`/admin/users/create?id=${user.id}`} />}
+                    render={<Link href={`/admin/users/edit/${user.id}`} />}
                     className="gap-2 cursor-pointer font-medium text-foreground"
                   >
                     <Pencil className="size-3.5 text-primary" />
                     <span>Edit User</span>
                   </DropdownMenuItem>
+
+                  {user.pid && (
+                    <DropdownMenuItem
+                      onClick={() => handleCopy(user.pid, `menu-pid-${user.id}`)}
+                      className="gap-2 cursor-pointer"
+                    >
+                      {copiedId === `menu-pid-${user.id}` ? (
+                        <Check className="size-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="size-3.5 text-muted-foreground" />
+                      )}
+                      <span>Copy PID</span>
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuItem
                     onClick={() => handleCopy(user.id, user.id)}

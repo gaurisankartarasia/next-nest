@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PaginatedUsersResponse, SortOrder, UsersQueryInput } from './dto/users-query.dto.js';
@@ -8,6 +9,7 @@ export interface CreateUserData {
   password: string;
   role?: string;
   status?: string;
+  pid?: string;
 }
 
 export interface UpdateUserData {
@@ -34,8 +36,16 @@ export class UsersService {
       .first();
   }
 
+  async findByPid(pid: string) {
+    return this.prisma.client.orm.public.User
+      .where({ pid })
+      .first();
+  }
+
   async create(data: CreateUserData) {
+    const pid = data.pid || randomUUID();
     return this.prisma.client.orm.public.User.create({
+      pid,
       email: data.email,
       name: data.name ?? null,
       password: data.password,
@@ -100,7 +110,9 @@ export class UsersService {
     }
 
     if (search) {
-      collection = collection.where((u: any) => u.email.ilike(`%${search}%`));
+      collection = collection.where((u: any) =>
+        u.email.ilike(`%${search}%`).or(u.pid.ilike(`%${search}%`))
+      );
     }
 
     // Run total count query
@@ -115,6 +127,10 @@ export class UsersService {
     if (sortBy === 'email') {
       collection = collection.orderBy((u: any) =>
         isAsc ? u.email.asc() : u.email.desc()
+      );
+    } else if (sortBy === 'pid') {
+      collection = collection.orderBy((u: any) =>
+        isAsc ? u.pid.asc() : u.pid.desc()
       );
     } else if (sortBy === 'role') {
       collection = collection.orderBy((u: any) =>

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { cn } from "@/lib/utils";
+import { IBM_Plex_Sans } from "next/font/google";
+
+const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "NestNeXt Auth | Secure Authentication & Authorization",
@@ -15,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased")}>
+    <html lang="en" className={cn("h-full", "antialiased", "font-sans", ibmPlexSans.variable)}>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ReduxProvider>{children}</ReduxProvider>
       </body>

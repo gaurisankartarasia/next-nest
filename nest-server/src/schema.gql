@@ -82,6 +82,7 @@ type User {
   email: String!
   id: ID!
   name: String
+  pid: String!
   role: String!
   status: String!
   updatedAt: String

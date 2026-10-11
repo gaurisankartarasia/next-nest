@@ -58,7 +58,7 @@ export interface UpdateUserStatusRequest {
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl:
-    process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:5001/graphql",
+    process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:5000/graphql",
   credentials: "include", // Essential: sends and receives httpOnly cookies across origins
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.accessToken;
@@ -205,6 +205,7 @@ export const authApi = createApi({
                 accessToken
                 user {
                   id
+                  pid
                   email
                   name
                   role
@@ -233,6 +234,7 @@ export const authApi = createApi({
                 accessToken
                 user {
                   id
+                  pid
                   email
                   name
                   role
@@ -261,6 +263,7 @@ export const authApi = createApi({
                 accessToken
                 user {
                   id
+                  pid
                   email
                   name
                   role
@@ -301,6 +304,7 @@ export const authApi = createApi({
             query Me {
               me {
                 id
+                pid
                 email
                 name
                 role
@@ -325,6 +329,7 @@ export const authApi = createApi({
             query GetUsers {
               users {
                 id
+                pid
                 email
                 name
                 role
@@ -353,6 +358,7 @@ export const authApi = createApi({
               paginatedUsers(input: $input) {
                 items {
                   id
+                  pid
                   email
                   name
                   role
@@ -399,6 +405,7 @@ export const authApi = createApi({
             query GetUserById($id: ID!) {
               user(id: $id) {
                 id
+                pid
                 email
                 name
                 role
@@ -424,6 +431,7 @@ export const authApi = createApi({
             mutation CreateUser($input: CreateUserInput!) {
               createUser(input: $input) {
                 id
+                pid
                 email
                 name
                 role
@@ -449,6 +457,7 @@ export const authApi = createApi({
             mutation UpdateUser($input: UpdateUserInput!) {
               updateUser(input: $input) {
                 id
+                pid
                 email
                 name
                 role
@@ -474,6 +483,7 @@ export const authApi = createApi({
             mutation UpdateUserStatus($input: UpdateUserStatusInput!) {
               updateUserStatus(input: $input) {
                 id
+                pid
                 email
                 name
                 role

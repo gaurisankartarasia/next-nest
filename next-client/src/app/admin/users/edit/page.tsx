@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { UserForm } from "@/components/users/user-form";
@@ -10,7 +11,20 @@ export const metadata: Metadata = {
   description: "Edit user account details and status.",
 };
 
-export default function EditUserPage() {
+interface EditPageProps {
+  searchParams: Promise<{ id?: string; edit?: string }>;
+}
+
+export default async function EditUserFallbackPage({
+  searchParams,
+}: EditPageProps) {
+  const { id, edit } = await searchParams;
+  const targetId = id || edit;
+
+  if (targetId) {
+    redirect(`/admin/users/edit/${targetId}`);
+  }
+
   return (
     <Suspense
       fallback={
@@ -24,4 +38,3 @@ export default function EditUserPage() {
     </Suspense>
   );
 }
-

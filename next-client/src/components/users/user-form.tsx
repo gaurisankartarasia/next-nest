@@ -178,12 +178,19 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
           : "Add a new user with designated credentials, roles, and status."
       }
       badge={
-        <Badge
-          variant={isEditMode ? "outline" : "secondary"}
-          className="text-xs font-semibold"
-        >
-          {isEditMode ? `ID #${userId}` : "New User"}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          <Badge
+            variant={isEditMode ? "outline" : "secondary"}
+            className="text-xs font-semibold"
+          >
+            {isEditMode ? `ID #${userId}` : "New User"}
+          </Badge>
+          {isEditMode && existingUser?.pid && (
+            <Badge variant="secondary" className="font-mono text-[11px] bg-muted/80">
+              PID: {existingUser.pid.slice(0, 8)}…{existingUser.pid.slice(-4)}
+            </Badge>
+          )}
+        </div>
       }
       actions={
         <Link
@@ -263,6 +270,19 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
                 className="space-y-5"
                 noValidate
               >
+                {/* Public ID (PID) Read-only field in Edit Mode */}
+                {isEditMode && existingUser?.pid && (
+                  <div className="rounded-lg border border-border/70 bg-muted/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div>
+                      <span className="font-semibold text-foreground">Unique Public ID (PID): </span>
+                      <span className="font-mono text-muted-foreground select-all">{existingUser.pid}</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/60 shrink-0">
+                      Immutable &amp; collision-proof
+                    </span>
+                  </div>
+                )}
+
                 {/* Full Name Input */}
                 <FormInput
                   control={form.control}

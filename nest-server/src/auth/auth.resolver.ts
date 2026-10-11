@@ -108,7 +108,12 @@ export class AuthResolver {
   async user(
     @Args('id', { type: () => ID }) id: string | number,
   ): Promise<User | null> {
-    return this.usersService.findById(Number(id));
+    const strId = String(id);
+    const numericId = Number(strId);
+    if (!Number.isNaN(numericId) && Number.isInteger(numericId) && numericId > 0 && String(numericId) === strId) {
+      return this.usersService.findById(numericId);
+    }
+    return this.usersService.findByPid(strId);
   }
 
   @Mutation(() => User)

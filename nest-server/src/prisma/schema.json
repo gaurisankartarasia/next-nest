@@ -57,6 +57,13 @@
                   "kind": "scalar"
                 }
               },
+              "pid": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "role": {
                 "nullable": false,
                 "type": {
@@ -99,6 +106,9 @@
                 },
                 "password": {
                   "column": "password"
+                },
+                "pid": {
+                  "column": "pid"
                 },
                 "role": {
                   "column": "role"
@@ -163,6 +173,11 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "pid": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
                 "role": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -197,6 +212,11 @@
               "uniques": [
                 {
                   "columns": [
+                    "pid"
+                  ]
+                },
+                {
+                  "columns": [
                     "email"
                   ]
                 }
@@ -208,7 +228,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b6cece46ca3f8f4084bfa6e90dbb215c484e17d978b130a3e4432b9e0dda13f6"
+    "storageHash": "c724755d59f4a085a65955fe63d3b7929f6abc8f1f732bcd94c2cb05b68a6c35"
   },
   "execution": {
     "executionHash": "0ee8448e950823e31f18e6501fa501483ba59e1a7bc088c060be852d2cdde0e1",

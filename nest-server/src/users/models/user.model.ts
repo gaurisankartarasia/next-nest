@@ -5,6 +5,9 @@ export class User {
   @Field(() => ID)
   id: number;
 
+  @Field(() => String)
+  pid: string;
+
   @Field()
   email: string;
 
