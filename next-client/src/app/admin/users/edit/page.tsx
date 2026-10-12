@@ -12,17 +12,17 @@ export const metadata: Metadata = {
 };
 
 interface EditPageProps {
-  searchParams: Promise<{ id?: string; edit?: string }>;
+  searchParams: Promise<{ id?: string; edit?: string; pid?: string }>;
 }
 
 export default async function EditUserFallbackPage({
   searchParams,
 }: EditPageProps) {
-  const { id, edit } = await searchParams;
-  const targetId = id || edit;
+  const { id, edit, pid } = await searchParams;
+  const target = pid || id || edit;
 
-  if (targetId) {
-    redirect(`/admin/users/edit/${targetId}`);
+  if (target) {
+    redirect(`/admin/users/edit/${target}`);
   }
 
   return (

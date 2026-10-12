@@ -42,6 +42,16 @@ export class UsersService {
       .first();
   }
 
+  async findByIdOrPid(identifier: string | number) {
+    const str = String(identifier).trim();
+    const numeric = Number(str);
+    if (!Number.isNaN(numeric) && Number.isInteger(numeric) && numeric > 0 && String(numeric) === str) {
+      const byId = await this.findById(numeric);
+      if (byId) return byId;
+    }
+    return this.findByPid(str);
+  }
+
   async create(data: CreateUserData) {
     const pid = data.pid || randomUUID();
     return this.prisma.client.orm.public.User.create({

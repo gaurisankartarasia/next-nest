@@ -1,6 +1,15 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { User } from '../../users/models/user.model.js';
 
+@ObjectType()
+export class CaptchaResponse {
+  @Field()
+  captchaId: string;
+
+  @Field()
+  image: string;
+}
+
 @InputType()
 export class LoginInput {
   @Field()
@@ -8,6 +17,12 @@ export class LoginInput {
 
   @Field()
   password: string;
+
+  @Field({ nullable: true })
+  captchaId?: string;
+
+  @Field({ nullable: true })
+  captchaCode?: string;
 }
 
 @InputType()

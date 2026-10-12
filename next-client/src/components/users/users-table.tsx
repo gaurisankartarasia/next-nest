@@ -41,6 +41,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableColumnHeader } from "@/components/ui/data-table/data-table-column-header";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "@/components/ui/toast";
 import { createAppColumnHelper, useAppTable } from "@/hooks/use-data-table";
 import { useUpdateUserStatusMutation } from "@/lib/redux/api/authApi";
 import type { User } from "@/lib/redux/slices/authSlice";
@@ -134,19 +136,53 @@ export function UsersTable({
 }: UsersTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    user: User;
+    newStatus: string;
+  } | null>(null);
+
   const [updateUserStatus] = useUpdateUserStatusMutation();
 
-  const handleCopy = (text: string, id: string) => {
+  const handleCopy = (text: string, id: string, label: string = "Value") => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
+    toast.add({
+      title: `${label} Copied`,
+      description: text,
+      type: "success",
+    });
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleStatusChange = async (userId: string, newStatus: string) => {
+  const requestStatusChange = (user: User, newStatus: string) => {
+    if (user.status === newStatus) return;
+    setPendingStatusChange({ user, newStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+    const { user, newStatus } = pendingStatusChange;
+    const targetId = user.id || user.pid;
+
     try {
-      setUpdatingUserId(userId);
-      await updateUserStatus({ id: userId, status: newStatus }).unwrap();
-    } catch (err) {
+      setUpdatingUserId(user.id);
+      await updateUserStatus({ id: targetId, status: newStatus }).unwrap();
+      toast.add({
+        title: "Status Updated",
+        description: `Successfully updated ${user.name || user.email}'s status to ${newStatus}.`,
+        type: "success",
+      });
+      setPendingStatusChange(null);
+    } catch (err: any) {
+      const errMsg =
+        err?.data?.[0]?.message ||
+        err?.message ||
+        "Failed to update user status. Please try again.";
+      toast.add({
+        title: "Update Failed",
+        description: errMsg,
+        type: "error",
+      });
       console.error("Failed to update status:", err);
     } finally {
       setUpdatingUserId(null);
@@ -183,17 +219,25 @@ export function UsersTable({
         enableHiding: false,
       }),
 
-      // ID Column
-      columnHelper.accessor("id", {
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="ID" />
+      // Sl. No. (Serial Number) Column
+      columnHelper.display({
+        id: "serialNumber",
+        header: () => (
+          <span className="font-semibold text-xs text-muted-foreground">#</span>
         ),
-        cell: ({ getValue }) => (
-          <span className="font-mono text-xs font-semibold text-muted-foreground">
-            #{getValue()}
-          </span>
-        ),
-        size: 70,
+        cell: ({ row }) => {
+          const pageIndex = pagination.pageIndex ?? 0;
+          const pageSize = pagination.pageSize ?? 10;
+          const slNo = pageIndex * pageSize + row.index + 1;
+          return (
+            <span className="font-mono text-xs font-semibold text-muted-foreground">
+              {slNo}
+            </span>
+          );
+        },
+        size: 50,
+        enableSorting: false,
+        enableHiding: false,
       }),
 
       // Public ID (PID) Column
@@ -208,7 +252,7 @@ export function UsersTable({
           return (
             <button
               type="button"
-              onClick={() => handleCopy(pid, `pid-${row.original.id}`)}
+              onClick={() => handleCopy(pid, `pid-${row.original.id}`, "PID")}
               title="Click to copy full PID"
               className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer group"
             >
@@ -222,6 +266,19 @@ export function UsersTable({
           );
         },
         size: 140,
+      }),
+
+      // Internal ID Column (Optional / toggleable in column visibility)
+      columnHelper.accessor("id", {
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="ID" />
+        ),
+        cell: ({ getValue }) => (
+          <span className="font-mono text-xs font-semibold text-muted-foreground">
+            #{getValue()}
+          </span>
+        ),
+        size: 70,
       }),
 
       // Name & Email Column
@@ -348,7 +405,7 @@ export function UsersTable({
                     <DropdownMenuItem
                       key={opt.value}
                       disabled={statusKey === opt.value || isUpdating}
-                      onClick={() => handleStatusChange(user.id, opt.value)}
+                      onClick={() => requestStatusChange(user, opt.value)}
                       className="gap-2 cursor-pointer text-xs"
                     >
                       {opt.icon}
@@ -422,7 +479,7 @@ export function UsersTable({
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
-                    render={<Link href={`/admin/users/edit/${user.id}`} />}
+                    render={<Link href={`/admin/users/edit/${user.pid || user.id}`} />}
                     className="gap-2 cursor-pointer font-medium text-foreground"
                   >
                     <Pencil className="size-3.5 text-primary" />
@@ -431,7 +488,7 @@ export function UsersTable({
 
                   {user.pid && (
                     <DropdownMenuItem
-                      onClick={() => handleCopy(user.pid, `menu-pid-${user.id}`)}
+                      onClick={() => handleCopy(user.pid, `menu-pid-${user.id}`, "PID")}
                       className="gap-2 cursor-pointer"
                     >
                       {copiedId === `menu-pid-${user.id}` ? (
@@ -444,7 +501,7 @@ export function UsersTable({
                   )}
 
                   <DropdownMenuItem
-                    onClick={() => handleCopy(user.id, user.id)}
+                    onClick={() => handleCopy(user.id, user.id, "User ID")}
                     className="gap-2 cursor-pointer"
                   >
                     {isCopied ? (
@@ -456,7 +513,7 @@ export function UsersTable({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => handleCopy(user.email, `email-${user.id}`)}
+                    onClick={() => handleCopy(user.email, `email-${user.id}`, "Email")}
                     className="gap-2 cursor-pointer"
                   >
                     <Copy className="size-3.5 text-muted-foreground" />
@@ -472,7 +529,7 @@ export function UsersTable({
                     <DropdownMenuItem
                       key={`action-status-${opt.value}`}
                       disabled={user.status === opt.value}
-                      onClick={() => handleStatusChange(user.id, opt.value)}
+                      onClick={() => requestStatusChange(user, opt.value)}
                       className="gap-2 cursor-pointer text-xs"
                     >
                       {opt.icon}
@@ -488,7 +545,7 @@ export function UsersTable({
         enableHiding: false,
       }),
     ]);
-  }, [columnHelper, copiedId, updatingUserId]);
+  }, [columnHelper, copiedId, updatingUserId, pagination]);
 
   // Create TanStack Table v9 instance with server-side processing ownership
   const table = useAppTable({
@@ -515,8 +572,9 @@ export function UsersTable({
   });
 
   return (
-    <DataTable
-      table={table}
+    <>
+      <DataTable
+        table={table}
       isLoading={isLoading}
       searchPlaceholder="Search users by email..."
       emptyMessage="No registered users found matching your filters."
@@ -563,5 +621,66 @@ export function UsersTable({
         </div>
       }
     />
+
+    {/* Reusable Confirmation Dialog for Status Change */}
+    <ConfirmDialog
+      open={Boolean(pendingStatusChange)}
+      onOpenChange={(open) => {
+        if (!open && !updatingUserId) {
+          setPendingStatusChange(null);
+        }
+      }}
+      title="Change User Status?"
+      description={
+        <>
+          Are you sure you want to change the status of{" "}
+          <span className="font-semibold text-foreground">
+            {pendingStatusChange?.user.name || pendingStatusChange?.user.email}
+          </span>{" "}
+          from{" "}
+          <span className="font-semibold text-muted-foreground uppercase">
+            {pendingStatusChange?.user.status}
+          </span>{" "}
+          to{" "}
+          <span
+            className={cn(
+              "font-semibold uppercase",
+              pendingStatusChange?.newStatus === "ACTIVE" &&
+                "text-emerald-600 dark:text-emerald-400",
+              pendingStatusChange?.newStatus === "INACTIVE" &&
+                "text-amber-600 dark:text-amber-400",
+              pendingStatusChange?.newStatus === "BANNED" &&
+                "text-red-600 dark:text-red-400",
+              pendingStatusChange?.newStatus === "DELETED" &&
+                "text-slate-600 dark:text-slate-400",
+            )}
+          >
+            {pendingStatusChange?.newStatus}
+          </span>
+          ?
+          {pendingStatusChange?.newStatus === "BANNED" && (
+            <span className="block mt-2 text-xs text-destructive">
+              Warning: Banned users are immediately restricted from logging in.
+            </span>
+          )}
+          {pendingStatusChange?.newStatus === "DELETED" && (
+            <span className="block mt-2 text-xs text-destructive">
+              Warning: Deleted users are marked as inactive and blocked from session renewal.
+            </span>
+          )}
+        </>
+      }
+      confirmLabel="Confirm Status Change"
+      confirmVariant={
+        pendingStatusChange?.newStatus === "BANNED" ||
+        pendingStatusChange?.newStatus === "DELETED"
+          ? "destructive"
+          : "default"
+      }
+      isLoading={Boolean(updatingUserId)}
+      onConfirm={confirmStatusChange}
+      onCancel={() => setPendingStatusChange(null)}
+    />
+  </>
   );
 }

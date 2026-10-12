@@ -40,14 +40,18 @@ import { cn } from "@/lib/utils";
 
 interface UserFormProps {
   initialUserId?: string;
+  initialUserPid?: string;
 }
 
-export function UserForm({ initialUserId }: UserFormProps = {}) {
+export function UserForm({ initialUserId, initialUserPid }: UserFormProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryUserId = searchParams.get("id") || searchParams.get("edit");
-  const userId = initialUserId || queryUserId;
-  const isEditMode = Boolean(userId);
+  const queryUser =
+    searchParams.get("pid") ||
+    searchParams.get("id") ||
+    searchParams.get("edit");
+  const userIdentifier = initialUserPid || initialUserId || queryUser;
+  const isEditMode = Boolean(userIdentifier);
 
   const { isAuthenticated, isInitializing } = useAppSelector(
     (state) => state.auth,
@@ -64,8 +68,8 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
     isLoading: isLoadingExisting,
     isError: isLoadError,
     error: loadError,
-  } = useGetUserByIdQuery(userId as string, {
-    skip: !isEditMode || !userId,
+  } = useGetUserByIdQuery(userIdentifier as string, {
+    skip: !isEditMode || !userIdentifier,
   });
 
   const form = useForm<UserFormData>({
@@ -118,9 +122,10 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
     }
 
     try {
-      if (isEditMode && userId) {
+      if (isEditMode && userIdentifier) {
+        const targetId = existingUser?.id || userIdentifier;
         await updateUser({
-          id: userId,
+          id: targetId,
           name: data.name?.trim() ? data.name.trim() : undefined,
           email: data.email.trim(),
           password: data.password?.trim() ? data.password.trim() : undefined,
@@ -178,19 +183,22 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
           : "Add a new user with designated credentials, roles, and status."
       }
       badge={
-        <div className="flex items-center gap-1.5">
-          <Badge
-            variant={isEditMode ? "outline" : "secondary"}
-            className="text-xs font-semibold"
-          >
-            {isEditMode ? `ID #${userId}` : "New User"}
-          </Badge>
-          {isEditMode && existingUser?.pid && (
-            <Badge variant="secondary" className="font-mono text-[11px] bg-muted/80">
-              PID: {existingUser.pid.slice(0, 8)}…{existingUser.pid.slice(-4)}
+        isEditMode ? (
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-xs font-semibold">
+              Edit Mode
             </Badge>
-          )}
-        </div>
+            {existingUser?.pid && (
+              <Badge variant="secondary" className="font-mono text-[11px] bg-muted/80">
+                PID: {existingUser.pid.slice(0, 8)}…{existingUser.pid.slice(-4)}
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <Badge variant="secondary" className="text-xs font-semibold">
+            New User
+          </Badge>
+        )
       }
       actions={
         <Link
@@ -270,19 +278,6 @@ export function UserForm({ initialUserId }: UserFormProps = {}) {
                 className="space-y-5"
                 noValidate
               >
-                {/* Public ID (PID) Read-only field in Edit Mode */}
-                {isEditMode && existingUser?.pid && (
-                  <div className="rounded-lg border border-border/70 bg-muted/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                    <div>
-                      <span className="font-semibold text-foreground">Unique Public ID (PID): </span>
-                      <span className="font-mono text-muted-foreground select-all">{existingUser.pid}</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground bg-background px-2 py-0.5 rounded border border-border/60 shrink-0">
-                      Immutable &amp; collision-proof
-                    </span>
-                  </div>
-                )}
-
                 {/* Full Name Input */}
                 <FormInput
                   control={form.control}

@@ -3,6 +3,7 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  captchaCode: z.string().trim().min(1, "Please enter the security verification code"),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

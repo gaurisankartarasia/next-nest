@@ -24,6 +24,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!user) {
       throw new UnauthorizedException('User not found or deactivated');
     }
+    if (user.status === 'INACTIVE') {
+      throw new UnauthorizedException('Account is inactive. Access denied.');
+    }
+    if (user.status === 'DELETED') {
+      throw new UnauthorizedException('Account not found.');
+    }
+    if (user.status === 'BANNED') {
+      throw new UnauthorizedException('Your account has been banned. Access denied.');
+    }
     return user;
   }
 }

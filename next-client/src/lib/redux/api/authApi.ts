@@ -21,9 +21,16 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface CaptchaResponse {
+  captchaId: string;
+  image: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
+  captchaId?: string;
+  captchaCode?: string;
 }
 
 export interface RegisterRequest {
@@ -97,12 +104,18 @@ const baseQueryWithReauth: BaseQueryFn<
     ),
   );
 
+  const isAuthMutation =
+    typeof args === "object" &&
+    args.body &&
+    (JSON.stringify(args.body).includes("mutation Login") ||
+      JSON.stringify(args.body).includes("mutation Register"));
+
   const isRefreshCall =
     typeof args === "object" &&
     args.body &&
     JSON.stringify(args.body).includes("refreshToken");
 
-  if (isUnauthorized && !isRefreshCall) {
+  if (isUnauthorized && !isRefreshCall && !isAuthMutation) {
     const refreshResult = await rawBaseQuery(
       {
         url: "",
@@ -143,7 +156,9 @@ const baseQueryWithReauth: BaseQueryFn<
       return {
         error: {
           status: "CUSTOM_ERROR",
-          error: "Unauthorized",
+          error:
+            rawData?.errors?.[0]?.message ||
+            "Unauthorized",
           data: rawData?.errors,
         },
       };
@@ -293,6 +308,24 @@ export const authApi = createApi({
       }),
       transformResponse: (response: any) => response?.data?.logout,
       invalidatesTags: ["User", "Users"],
+    }),
+
+    getCaptcha: builder.query<CaptchaResponse, void>({
+      query: () => ({
+        url: "",
+        method: "POST",
+        body: {
+          query: `
+            query Captcha {
+              captcha {
+                captchaId
+                image
+              }
+            }
+          `,
+        },
+      }),
+      transformResponse: (response: any) => response?.data?.captcha,
     }),
 
     getMe: builder.query<User, void>({
@@ -507,6 +540,8 @@ export const {
   useLoginMutation,
   useRefreshTokenMutation,
   useLogoutMutationMutation,
+  useGetCaptchaQuery,
+  useLazyGetCaptchaQuery,
   useGetMeQuery,
   useGetUsersQuery,
   useGetPaginatedUsersQuery,

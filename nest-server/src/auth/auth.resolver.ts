@@ -14,7 +14,14 @@ import {
 } from '../users/dto/user-management.dto.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService, REFRESH_COOKIE_NAME } from './auth.service.js';
-import { AuthResponse, LoginInput, RefreshTokenInput, RegisterInput } from './dto/auth.dto.js';
+import { CaptchaService } from './captcha.service.js';
+import {
+  AuthResponse,
+  CaptchaResponse,
+  LoginInput,
+  RefreshTokenInput,
+  RegisterInput,
+} from './dto/auth.dto.js';
 
 interface GraphQLContext {
   req: Request;
@@ -26,7 +33,13 @@ export class AuthResolver {
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
+    private readonly captchaService: CaptchaService,
   ) {}
+
+  @Query(() => CaptchaResponse)
+  captcha(): CaptchaResponse {
+    return this.captchaService.generate();
+  }
 
   @Mutation(() => AuthResponse)
   async register(
@@ -108,12 +121,7 @@ export class AuthResolver {
   async user(
     @Args('id', { type: () => ID }) id: string | number,
   ): Promise<User | null> {
-    const strId = String(id);
-    const numericId = Number(strId);
-    if (!Number.isNaN(numericId) && Number.isInteger(numericId) && numericId > 0 && String(numericId) === strId) {
-      return this.usersService.findById(numericId);
-    }
-    return this.usersService.findByPid(strId);
+    return this.usersService.findByIdOrPid(id);
   }
 
   @Mutation(() => User)

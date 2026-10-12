@@ -3,6 +3,7 @@ import "./globals.css";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { cn } from "@/lib/utils";
 import { IBM_Plex_Sans } from "next/font/google";
+import { Toaster } from "@/components/ui/toast";
 
 const ibmPlexSans = IBM_Plex_Sans({subsets:['latin'],variable:'--font-sans'});
 
@@ -20,7 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("h-full", "antialiased", "font-sans", ibmPlexSans.variable)}>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
-        <ReduxProvider>{children}</ReduxProvider>
+        <ReduxProvider>
+          {children}
+          <Toaster />
+        </ReduxProvider>
       </body>
     </html>
   );

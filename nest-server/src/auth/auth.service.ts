@@ -16,6 +16,8 @@ import {
   UpdateUserStatusInput,
 } from '../users/dto/user-management.dto.js';
 
+import { CaptchaService } from './captcha.service.js';
+
 export const REFRESH_COOKIE_NAME = 'refreshToken';
 
 @Injectable()
@@ -23,6 +25,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly captchaService: CaptchaService,
   ) {}
 
   setRefreshTokenCookie(res: Response, refreshToken: string) {
@@ -69,6 +72,12 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
+    // Verify server-side captcha if provided or enforced
+    if (!input.captchaId || !input.captchaCode) {
+      throw new BadRequestException('Security captcha code is required to sign in.');
+    }
+    this.captchaService.verify(input.captchaId, input.captchaCode);
+
     const user = await this.usersService.findByEmail(input.email);
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
@@ -79,10 +88,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (user.status === 'BANNED' || user.status === 'DELETED') {
-      throw new UnauthorizedException(
-        `Account is ${user.status.toLowerCase()}. Access denied. Please contact an administrator.`
-      );
+    if (user.status === 'INACTIVE') {
+      throw new UnauthorizedException('Account is inactive. Please contact an administrator.');
+    }
+
+    if (user.status === 'DELETED') {
+      throw new UnauthorizedException('Wrong credentials. Invalid email or password.');
+    }
+
+    if (user.status === 'BANNED') {
+      throw new UnauthorizedException('Your account has been banned. Access denied.');
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -109,6 +124,18 @@ export class AuthService {
       const user = await this.usersService.findById(userId);
       if (!user || !user.hashedRefreshToken) {
         throw new ForbiddenException('Access Denied: Invalid refresh token');
+      }
+
+      if (user.status === 'INACTIVE') {
+        throw new ForbiddenException('Account is inactive. Access denied.');
+      }
+
+      if (user.status === 'DELETED') {
+        throw new ForbiddenException('Account has been removed.');
+      }
+
+      if (user.status === 'BANNED') {
+        throw new ForbiddenException('Your account has been banned. Access denied.');
       }
 
       const refreshTokenMatches = await argon2.verify(
@@ -160,11 +187,11 @@ export class AuthService {
   }
 
   async updateUser(input: UpdateUserInput) {
-    const numericId = Number(input.id);
-    const existing = await this.usersService.findById(numericId);
+    const existing = await this.usersService.findByIdOrPid(input.id);
     if (!existing) {
-      throw new NotFoundException(`User with ID ${input.id} not found`);
+      throw new NotFoundException(`User with ID or PID "${input.id}" not found`);
     }
+    const numericId = existing.id;
 
     if (input.email && input.email !== existing.email) {
       const emailTaken = await this.usersService.findByEmail(input.email);
@@ -187,22 +214,22 @@ export class AuthService {
     });
 
     if (!updated) {
-      throw new NotFoundException(`User with ID ${input.id} could not be retrieved after update`);
+      throw new NotFoundException(`User with ID or PID "${input.id}" could not be retrieved after update`);
     }
 
     return updated;
   }
 
   async updateUserStatus(input: UpdateUserStatusInput) {
-    const numericId = Number(input.id);
-    const existing = await this.usersService.findById(numericId);
+    const existing = await this.usersService.findByIdOrPid(input.id);
     if (!existing) {
-      throw new NotFoundException(`User with ID ${input.id} not found`);
+      throw new NotFoundException(`User with ID or PID "${input.id}" not found`);
     }
+    const numericId = existing.id;
 
     const updated = await this.usersService.updateStatus(numericId, input.status);
     if (!updated) {
-      throw new NotFoundException(`User with ID ${input.id} could not be retrieved after update`);
+      throw new NotFoundException(`User with ID or PID "${input.id}" could not be retrieved after update`);
     }
 
     return updated;

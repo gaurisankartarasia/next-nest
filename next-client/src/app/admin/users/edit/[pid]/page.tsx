@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 };
 
 interface EditUserPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ pid: string }>;
 }
 
 export default async function EditUserPage({ params }: EditUserPageProps) {
-  const { id } = await params;
+  const { pid } = await params;
 
   return (
     <Suspense
@@ -26,8 +26,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         </div>
       }
     >
-      <UserForm initialUserId={id} />
+      <UserForm initialUserPid={pid} />
     </Suspense>
   );
 }
-

@@ -1,0 +1,169 @@
+[
+  {
+    "id": "column.public.users.pid",
+    "label": "Add column \"pid\" to \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "pid",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"pid\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "pid"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"pid\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD COLUMN \"pid\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"pid\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "pid"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data_migration.backfill-users-pid",
+    "label": "Data transform: backfill-users-pid",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "Check backfill-users-pid has work to do",
+        "sql": "SELECT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"users\" WHERE \"pid\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "Run backfill-users-pid",
+        "sql": "UPDATE \"public\".\"users\" SET \"pid\" = $1, \"updatedAt\" = $2 WHERE \"pid\" IS NULL",
+        "params": [
+          {
+            "kind": "literal",
+            "value": "gen_random_uuid()"
+          },
+          "2026-10-11T09:16:19.278Z"
+        ]
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "Verify backfill-users-pid resolved all violations",
+        "sql": "SELECT NOT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"users\" WHERE \"pid\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.setNotNull.users.pid",
+    "label": "Set NOT NULL on \"users\".\"pid\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "pid",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"pid\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "pid"
+        ]
+      },
+      {
+        "description": "ensure no NULL values in \"pid\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"users\" WHERE \"pid\" IS NULL) AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "set NOT NULL on \"pid\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ALTER COLUMN \"pid\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"pid\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "users",
+          "pid",
+          "NO"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.users.users_pid_key",
+    "label": "Add unique constraint on \"users\" (pid)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "users_pid_key",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_pid_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_pid_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"users_pid_key\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD CONSTRAINT \"users_pid_key\" UNIQUE (\"pid\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"users_pid_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_pid_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  }
+]
